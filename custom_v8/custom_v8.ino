@@ -11,6 +11,15 @@
 
 #include "settings.h"
 #include "idle.h"
+// #include <Servo.h>
+
+#define throttlePin A1
+#define servoPinInput A2
+#define servoPinOut 6
+#define throttlePinOut 5
+
+int speedMode = 0;
+int angle = 0;
 
 // Mode settings - These could easily be 4 jumpers connected to spare pins, checked at startup to determine mode
 boolean managedThrottle = true;     // Managed mode looks after the digipot if fitted for volume, and adds some mass to the engine
@@ -35,7 +44,7 @@ volatile int16_t pulseWidth = 0;                // Current pulse width when in P
 
 
 
-
+// Servo servo1;
 
 void setup()
 {
@@ -52,6 +61,13 @@ void setup()
   digitalWrite(POT_CS, HIGH);
   digitalWrite(POT_SCK, HIGH);
   digitalWrite(POT_SDO, HIGH);
+  Serial.begin(9600);
+  pinMode(throttlePin, INPUT);
+  pinMode(servoPinInput, INPUT);
+  pinMode(servoPinOut, OUTPUT);
+  pinMode(throttlePinOut, OUTPUT);
+  analogWrite(servoPinOut, angle);
+  // servo1.attach(servoPinOut);
 
   if(managedThrottle) writePot(0);
   else writePot(DEFAULT_VOLUME);
@@ -85,6 +101,30 @@ void loop()
   else if(spiThrottle) doSpiThrottle();
 
   if(managedThrottle) manageSpeed();
+  speedMode = map(analogRead(throttlePin), 0,1024, 0, 120);
+  angle = map(analogRead(servoPinInput), 0,1024, 0, 255);
+  // servo1.write(angle);
+  analogWrite(servoPinOut, angle);
+  analogWrite(throttlePinOut, speedMode);
+  Serial.print("Throttle: ");
+  Serial.print(speedMode);
+
+  Serial.print("Angle: ");
+  Serial.print(angle);
+  Serial.println("");
+  if (Serial.available() > 0) {
+  String data = Serial.readStringUntil('\n');
+  if(data == "go"){
+    speedMode = 160;
+    analogWrite(throttlePinOut, speedMode);
+    delay(4000);
+  }
+  else if (data == "stop"){
+    speedMode = 0;
+    analogWrite(throttlePinOut, speedMode);
+    delay(4000);
+  }
+}
 }
 
 
