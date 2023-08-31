@@ -1,82 +1,4 @@
-
-/*
-      This code was quick and dirty, based on a PCM audio example in the
-      arduino playground: http://playground.arduino.cc/Code/PCMAudio
-
-      It's been heavely modified for use with RC to generate something that's
-      a bit like an engine sound. I've started work on making the program
-      readable, still some to do though.
-*/
-
-
-#include "settings.h"
-#include "idle.h"
-// #include <Servo.h>
-
-#define throttlePin A1
-#define servoPinInput A2
-#define servoPinOut 6
-#define throttlePinOut 5
-
-int speedMode = 0;
-int angle = 0;
-
-// Mode settings - These could easily be 4 jumpers connected to spare pins, checked at startup to determine mode
-boolean managedThrottle = true;     // Managed mode looks after the digipot if fitted for volume, and adds some mass to the engine
-boolean potThrottle = true;         // A pot connected to A1, 0-1023 sets speed
-boolean pwmThrottle = false;        // Takes a standard servo signal on pin 2 (UNO)
-boolean spiThrottle = false;        // SPI mode, is an SPI slave, expects 1-255 for throttle position, with 0 being engine off
-
-
-
-
-// Stuff not to play with!
-#define SPEAKER 3                               // This is kept as 3, original code had 11 as option, but this conflicts with SPI
-volatile uint16_t currentSmpleRate = BASE_RATE; // Current playback rate, this is adjusted depending on engine RPM
-boolean audioRunning = false;                   // Audio state, used so we can toggle the sound system
-uint16_t curVolume = 0;                         // Current digi pot volume, used for fade in/out
-volatile uint16_t curEngineSample;              // Index of current loaded sample
-uint8_t  lastSample;                            // Last loaded sample
-int16_t  currentThrottle = 0;                   // 0 - 1000, a top value of 1023 is acceptable
-uint8_t  throttleByte = 0;                      // Raw throttle position in SPI mode, gets mapped to currentThrottle
-uint8_t  spiReturnByte = 0;                     // The current RPM mapped to a byte for SPI return
-volatile int16_t pulseWidth = 0;                // Current pulse width when in PWM mode
-
-
-
-// Servo servo1;
-
-void setup()
-{
-  // SPI slave mode
-  pinMode(10, INPUT);  // Chip Select
-  pinMode(12, OUTPUT); // MISO pin, this is for ATMEGA328/168
-  SPCR |= _BV(SPE);// turn on SPI in slave mode
-  SPCR |= _BV(SPIE); // turn on interrupts
-
-  // MCP4131 digi pot
-  pinMode(POT_CS, OUTPUT);
-  pinMode(POT_SCK, OUTPUT);
-  pinMode(POT_SDO, OUTPUT);
-  digitalWrite(POT_CS, HIGH);
-  digitalWrite(POT_SCK, HIGH);
-  digitalWrite(POT_SDO, HIGH);
-  Serial.begin(9600);
-  pinMode(throttlePin, INPUT);
-  pinMode(servoPinInput, INPUT);
-  pinMode(servoPinOut, OUTPUT);
-  pinMode(throttlePinOut, OUTPUT);
-  analogWrite(servoPinOut, angle);
-  // servo1.attach(servoPinOut);
-
-  if(managedThrottle) writePot(0);
-  else writePot(DEFAULT_VOLUME);
-
-  // Analog input, we set these pins so a pot with 0.1in pin spacing can
-  // plug directly into the Arduino header, if you change POT_PIN you may
-  // want to comment them out
-  // pinMode(A0, OUTPUT);
-  // pinMode(A2, OUTPUT);
+  GNU nano 5.4                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     /home/pi/Arduino/custom_v8/custom_v8.ino
   // digitalWrite(A0, HIGH);
   // digitalWrite(A2, LOW);
 
@@ -100,30 +22,100 @@ void loop()
   else if(pwmThrottle) doPwmThrottle();
   else if(spiThrottle) doSpiThrottle();
 
-  if(managedThrottle) manageSpeed();
-  speedMode = map(analogRead(throttlePin), 0,1024, 0, 120);
-  angle = map(analogRead(servoPinInput), 0,1024, 0, 255);
-  // servo1.write(angle);
-  analogWrite(servoPinOut, angle);
-  analogWrite(throttlePinOut, speedMode);
+
+
+  /*
   Serial.print("Throttle: ");
   Serial.print(speedMode);
 
   Serial.print("Angle: ");
   Serial.print(angle);
   Serial.println("");
+
+  */
   if (Serial.available() > 0) {
   String data = Serial.readStringUntil('\n');
-  if(data == "go"){
-    speedMode = 160;
-    analogWrite(throttlePinOut, speedMode);
-    delay(4000);
+  Serial.println(data);
+  if(data == "change_gearD"){
+    mode="drive";
   }
-  else if (data == "stop"){
+  else if (data == "change_gearN"){
+    mode = "neutral";
+  }
+  else if (data == "change_gearR"){
+    mode = "reverse";
+  }
+  else if (data == "change_gearP"){
+    mode = "parking";
+
+  }
+  else if (data == "True" || data == "False"){
+    // Serial.println(data);
+    relay = (data == "True");
+    Serial.print("relay: ");
+    Serial.print(relay);
+    Serial.println();
+  }
+  else if (data == "wheelTrue" || data == "wheelFalse"){
+    // Serial.println(data);
+    wheel = (data == "wheelTrue");
+    Serial.print("wheel: ");
+    Serial.print(wheel);
+    Serial.println();
+  }
+if(mode == "drive"){
+    Serial.println(data);
+    digitalWrite(relayRight1, !relay);
+    digitalWrite(relayRight2, relay);
+    digitalWrite(relayLeft1, !relay);
+    digitalWrite(relayLeft2, relay);
+    if(managedThrottle) manageSpeed();
+    speedMode = map(analogRead(throttlePin), 0,1024, 0, 120);
+    if (wheel == 1){
+      angle = map(analogRead(servoPinInput), 0,1024, 0, 255);
+    }
+    else{
+      angle = map(analogRead(servoPinInput), 0,1024, 255, 0);
+    }
+    // servo1.write(angle);
+    analogWrite(servoPinOut, angle);
+    analogWrite(throttlePinOut, speedMode);
+    Serial.println(speedMode);
+  }
+  else if (mode == "neutral"){
     speedMode = 0;
+    angle = map(analogRead(servoPinInput), 0,1024, 0, 255);
+    analogWrite(servoPinOut, angle);
     analogWrite(throttlePinOut, speedMode);
-    delay(4000);
   }
+  else if (mode == "reverse"){
+    Serial.println(data);
+    digitalWrite(relayRight1, relay);
+    digitalWrite(relayRight2, !relay);
+    digitalWrite(relayLeft1, relay);
+    digitalWrite(relayLeft2, !relay);
+
+    if(managedThrottle) manageSpeed();
+    speedMode = map(analogRead(throttlePin), 0,1024, 0, 120);
+    if (wheel == 1){
+      angle = map(analogRead(servoPinInput), 0,1024, 0, 255);
+    }
+    else{
+      angle = map(analogRead(servoPinInput), 0,1024, 255, 0);
+    }
+    // servo1.write(angle);
+    analogWrite(servoPinOut, angle);
+    analogWrite(throttlePinOut, speedMode);
+    Serial.println(speedMode);
+  }
+  else if (mode == "parking"){
+    Serial.println(data);
+    speedMode = 0;
+    angle = 90;
+    analogWrite(servoPinOut, angle);
+    analogWrite(throttlePinOut, speedMode);
+  }
+
 }
 }
 
@@ -415,3 +407,13 @@ ISR(TIMER1_COMPA_vect) {
   ++curEngineSample;
 
 }
+
+
+
+
+
+
+
+
+
+
