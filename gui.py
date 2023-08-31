@@ -1,3 +1,9 @@
+GNU
+nano
+5.4
+start.py
+# !/usr/binenv python3
+
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -11,6 +17,7 @@ import serial
 # Устанавливаем размер окна
 Window.size = (1024, 600)
 reverse = False
+wheels = False
 # Загружаем стилизацию через файл kv
 Builder.load_string('''
 <CarControlPanel>:
@@ -20,14 +27,15 @@ Builder.load_string('''
     on_parent:
         self.z = float('inf') if self.parent else 0
     canvas.before:
-    
+
         Rectangle:
             pos: self.pos
             size: self.size
             source: 'background.jpg'
-    
-    
-    
+
+
+
+
     # Image:
     #     id: background_image
     #     source: 'background.jpg'
@@ -63,7 +71,7 @@ Builder.load_string('''
         #     pos_hint: {'center_x': 0.2, 'center_y': 0.5}  # Задание координат положения
         #     angle: 0  # Начальный угол поворота
         #     z: 2 # Устанавливаем порядок отображения верхней картинки
-    
+
     Button:
         text: 'Включение фар'
         size_hint_y: None
@@ -78,8 +86,8 @@ Builder.load_string('''
         size_hint_y: None
         height: '48dp'
         background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
-        
-        
+
+
         Button:
             id: P
             text: 'P'
@@ -87,28 +95,28 @@ Builder.load_string('''
             on_press: root.reset_button_colors([R, N, D]);root.toggle_button_color(self)
 
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
-            
+
         Button:
             id: R
             text: 'R'
             on_release: root.change_gear('R')
             on_press: root.reset_button_colors([P, N, D]);root.toggle_button_color(self)
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
-            
+
         Button:
             id: N
             text: 'N'
             on_release: root.change_gear('N')
             on_press: root.reset_button_colors([R, P, D]);root.toggle_button_color(self)
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
-            
+
         Button:
             id: D
             text: 'D'
             on_release: root.change_gear('D')
             on_press: root.reset_button_colors([R, N, P]);root.toggle_button_color(self)
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
-            
+
     BoxLayout:
         orientation: 'horizontal'
         spacing: '5dp'
@@ -116,7 +124,7 @@ Builder.load_string('''
         height: '48dp'
         background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
 
-        
+
         Button:
             text: 'Музыка'
             size_hint_y: None
@@ -124,8 +132,8 @@ Builder.load_string('''
             on_release: root.toggle_music()
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
-            
-    
+
+
         Button:
             text: 'Активный выхлоп'
             size_hint_y: None
@@ -141,7 +149,7 @@ Builder.load_string('''
         on_release: root.rc_control()
         background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
         on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
-    
+
 <SettingsPopup>:
     title: 'Настройки'
     size_hint: None, None
@@ -154,16 +162,23 @@ Builder.load_string('''
         # Label:
         #     text: 'Здесь могут быть ваши настройки'
         Button:
+            text: 'Инверсия вращения колёс'
+            size_hint_y: None
+            height: '24dp'
+            on_release: root.reverse_control()
+            # background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
+            on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
+        Button:
             text: 'Инверсия руля'
             size_hint_y: None
-            height: '48dp'
-            on_release: root.reverse_control()
+            height: '24dp'
+            on_release: root.reverse_wheel()
             # background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
         Button:
             text: 'Закрыть'
             size_hint: None, None
-            size: 100, 40
+            size: 100, 24
             pos_hint: {'center_x': 0.5}
             on_release: root.dismiss()
 ''')
@@ -207,24 +222,29 @@ class CarControlPanel(BoxLayout):
     def change_gear(self, gear):
         # Код для переключения скоростей
         print('change_gear', gear)
+        data = 'change_gear' + str(gear)
+        ser.write(data.encode())
 
     def toggle_music(self):
         # Код для управления музыкой
         print('toggle_music')
+        ser.write(b'toggle_music')
 
     def toggle_exhaust(self):
         # Код для управления активным выхлопом
         print('toggle_exhaust')
+        ser.write(b'toggle_exhaust')
 
     def rc_control(self):
         # Код для управления машиной дистанционно
-        print('rc_control')
+        print(b'rc_control')
 
 
 class SettingsPopup(Popup):
     def reverse_control(self):
         global reverse
         print('reverse= ', reverse)
+        ser.write(str(reverse).encode())
         reverse = not reverse
 
     def toggle_button_color(self, button):
@@ -232,6 +252,12 @@ class SettingsPopup(Popup):
             button.background_color = [0.5, 0.5, 0.5, 1]  # Серый цвет
         else:
             button.background_color = [0.8, 0.8, 0.8, 1]
+
+    def reverse_wheel(self):
+        global wheels
+        print('reverse wheels= ', wheels)
+        ser.write(('wheel' + str(wheels)).encode())
+        wheels = not wheels
 
 
 class CarControlApp(App):
@@ -241,7 +267,6 @@ class CarControlApp(App):
 
 if __name__ == '__main__':
     ser = serial.Serial('/dev/ttyUSB0', 9600, timeout=1)
-    ser.write(b"Hello from Raspberry Pi!\n")
+    ser.write(b'hello')
     ser.flush()
     CarControlApp().run()
-
