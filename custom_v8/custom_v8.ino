@@ -13,8 +13,8 @@
 #include "idle.h"
 // #include <Servo.h>
 
-#define throttlePin A1
-#define servoPinInput A2
+#define throttlePin A2
+#define servoPinInput A1
 #define servoPinOut 6
 #define throttlePinOut 5
 
@@ -112,20 +112,23 @@ void loop()
 
   
   
-  /*
-  Serial.print("Throttle: ");
+  
+  Serial.print(" Throttle: ");
   Serial.print(speedMode);
 
-  Serial.print("Angle: ");
+  Serial.print(" Angle: ");
   Serial.print(angle);
+
+  Serial.print(" Mode: ");
+  Serial.print(mode);
   Serial.println("");
   
-  */
+  
   if (Serial.available() > 0) {
   String data = Serial.readStringUntil('\n');
   Serial.println(data);
   if(data == "change_gearD"){
-    mode="drive";
+    mode="d";
   }
   else if (data == "change_gearN"){
     mode = "neutral";
@@ -151,8 +154,11 @@ void loop()
     Serial.print(wheel);
     Serial.println();
   }
-if(mode == "drive"){
-    Serial.println(data);
+  }
+
+  if(mode == "d"){
+    Serial.println("drive mode");
+    // Serial.println(data);
     digitalWrite(relayRight1, !relay);
     digitalWrite(relayRight2, relay);
     digitalWrite(relayLeft1, !relay);
@@ -177,7 +183,7 @@ if(mode == "drive"){
     analogWrite(throttlePinOut, speedMode);
   }
   else if (mode == "reverse"){
-    Serial.println(data);
+    //Serial.println(data);
     digitalWrite(relayRight1, relay);
     digitalWrite(relayRight2, !relay);
     digitalWrite(relayLeft1, relay);
@@ -197,7 +203,7 @@ if(mode == "drive"){
     Serial.println(speedMode);
   }
   else if (mode == "parking"){
-    Serial.println(data);
+    //Serial.println(data);
     speedMode = 0;
     angle = 90;
     analogWrite(servoPinOut, angle);
@@ -205,7 +211,7 @@ if(mode == "drive"){
   }
 
 }
-}
+
 
 
 
