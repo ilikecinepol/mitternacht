@@ -43,6 +43,7 @@ Builder.load_string('''
     #     pos_hint: {'center_x': 0.5, 'center_y': 0.5}  # Позиционируем по центру
     RelativeLayout:          
         Button:
+            id: O
             text: 'Настройки'
             # background_normal: 'settings_icon.png'
             # background_down: 'settings_icon.png'
@@ -72,10 +73,11 @@ Builder.load_string('''
         #     z: 2 # Устанавливаем порядок отображения верхней картинки
     
     Button:
+        id: ON
         text: 'Включение фар'
         size_hint_y: None
         height: '48dp'
-        on_release: root.toggle_lights()
+        # on_release: root.toggle_lights()
         background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
         on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
 
@@ -90,7 +92,7 @@ Builder.load_string('''
         Button:
             id: P
             text: 'P'
-            on_release: root.change_gear('P')
+            # on_release: root.change_gear('P')
             on_press: root.reset_button_colors([R, N, D]);root.toggle_button_color(self)
 
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
@@ -98,21 +100,21 @@ Builder.load_string('''
         Button:
             id: R
             text: 'R'
-            on_release: root.change_gear('R')
+            # on_release: root.change_gear('R')
             on_press: root.reset_button_colors([P, N, D]);root.toggle_button_color(self)
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             
         Button:
             id: N
             text: 'N'
-            on_release: root.change_gear('N')
+            # on_release: root.change_gear('N')
             on_press: root.reset_button_colors([R, P, D]);root.toggle_button_color(self)
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             
         Button:
             id: D
             text: 'D'
-            on_release: root.change_gear('D')
+            # on_release: root.change_gear('D')
             on_press: root.reset_button_colors([R, N, P]);root.toggle_button_color(self)
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             
@@ -125,27 +127,30 @@ Builder.load_string('''
 
         
         Button:
+            id: M
             text: 'Музыка'
             size_hint_y: None
             height: '48dp'
-            on_release: root.toggle_music()
+            # on_release: root.toggle_music()
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
             
     
         Button:
+            id: B
             text: 'Активный выхлоп'
             size_hint_y: None
             height: '48dp'
-            on_release: root.toggle_exhaust()
+            # on_release: root.toggle_exhaust()
             background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
 
     Button:
+        id: RC
         text: 'Дистанционное управление'
         size_hint_y: None
         height: '48dp'
-        on_release: root.rc_control()
+        # on_release: root.rc_control()
         background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
         on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
     
@@ -161,6 +166,7 @@ Builder.load_string('''
         # Label:
         #     text: 'Здесь могут быть ваши настройки'
         Button:
+            id: IW
             text: 'Инверсия вращения колёс'
             size_hint_y: None
             height: '24dp'
@@ -168,6 +174,7 @@ Builder.load_string('''
             # background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
         Button:
+            id: IR
             text: 'Инверсия руля'
             size_hint_y: None
             height: '24dp'
@@ -175,6 +182,7 @@ Builder.load_string('''
             # background_color: 0, 0, 1, 1  # Синий цвет (R, G, B, A)
             on_press: root.toggle_button_color(self)  # Изменение цвета при нажатии
         Button:
+            id: C
             text: 'Закрыть'
             size_hint: None, None
             size: 100, 24
@@ -184,7 +192,40 @@ Builder.load_string('''
 
 
 class CarControlPanel(BoxLayout):
+    
+    def on_touch_up(self, touch):
+        
+        if touch.button == 'left' and self.collide_point(*touch.pos):
+            for button in self.walk(restrict=True):
+                if isinstance(button, Button) and button.collide_point(*touch.pos):
+                    if button.text == 'P':
+                        self.change_gear('P')
+                    elif button.text == 'R':
+                        self.change_gear('R')
+                    elif button.text == 'N':
+                        self.change_gear('N')
+                    elif button.text == 'D':
+                        self.change_gear('D')
+                    elif button.text == 'Закрыть':
+                        self.dismiss()
+                    elif button.text == 'Инверсия вращения колёс':
+                        self.reverse_control()
+                    elif button.text == 'Инверсия руля':
+                        self.reverse_wheel()
+                    elif button.text == 'Дистанционное управление':
+                        self.rc_control()
+                    elif button.text == 'Активный выхлоп':
+                        self.toggle_exhaust()
+                    elif button.text == 'Музыка':
+                        self.toggle_music()
+                    elif button.text == 'Включение фар':
+                        self.toggle_lights()
+                    elif button.text == 'Настройки':
+                        self.show_settings_popup()
 
+
+                    
+                    
     def rotate_car_image(self, angle_degrees=20):
         print('animation')
         car_image = self.ids.arrow
